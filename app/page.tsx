@@ -43,6 +43,7 @@ function generateUniqueCards(count: number, grid: GridSize): number[][] {
 export default function HomePage() {
   const [grid, setGrid] = useState<GridSize>(5);
   const [amount, setAmount] = useState<number>(1);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
   // no-op
 
@@ -124,7 +125,7 @@ export default function HomePage() {
     await new Promise((r) => setTimeout(r, 0));
 
     const canvas = await html2canvas(wrapper, {
-      scale: 2,
+      scale: 1,
       backgroundColor: "#ffffff",
       useCORS: true,
     });
@@ -134,41 +135,50 @@ export default function HomePage() {
   }
 
   async function handleGenerate() {
-    const n = Math.max(1, Math.min(100, Math.floor(amount)));
-    const generated = generateUniqueCards(n, grid);
+    setIsGenerating(true);
+    try {
+      const n = Math.max(1, Math.min(100, Math.floor(amount)));
+      const generated = generateUniqueCards(n, grid);
 
-    const pdf = new jsPDF({
-      orientation: "portrait",
-      unit: "pt",
-      format: "a4",
-    });
-    for (let i = 0; i < generated.length; i++) {
-      const canvas = await renderCardToCanvas(generated[i], grid);
-      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "pt",
+        format: "a4",
+        // compressPdf is supported in newer jsPDF versions; harmless if ignored
+        compress: true as unknown as boolean,
+      } as any);
+      for (let i = 0; i < generated.length; i++) {
+        const canvas = await renderCardToCanvas(generated[i], grid);
+        const imgData = canvas.toDataURL("image/jpeg", 0.6);
 
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const margin = 36; // 0.5in
-      const maxW = pageWidth - margin * 2;
-      const maxH = pageHeight - margin * 2;
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const margin = 36; // 0.5in
+        const maxW = pageWidth - margin * 2;
+        const maxH = pageHeight - margin * 2;
 
-      let w = canvas.width;
-      let h = canvas.height;
-      const ratio = Math.min(maxW / w, maxH / h);
-      w = w * ratio;
-      h = h * ratio;
+        let w = canvas.width;
+        let h = canvas.height;
+        const ratio = Math.min(maxW / w, maxH / h);
+        w = w * ratio;
+        h = h * ratio;
 
-      if (i > 0) pdf.addPage();
-      pdf.addImage(
-        imgData,
-        "PNG",
-        (pageWidth - w) / 2,
-        (pageHeight - h) / 2,
-        w,
-        h
-      );
+        if (i > 0) pdf.addPage();
+        pdf.addImage(
+          imgData,
+          "JPEG",
+          (pageWidth - w) / 2,
+          (pageHeight - h) / 2,
+          w,
+          h
+        );
+      }
+      pdf.save("bingo-cards.pdf");
+    } catch (err) {
+      console.error("Failed to generate PDF", err);
+    } finally {
+      setIsGenerating(false);
     }
-    pdf.save("bingo-cards.pdf");
   }
 
   return (
@@ -229,9 +239,41 @@ export default function HomePage() {
               <div className="flex items-end">
                 <button
                   onClick={handleGenerate}
-                  className="inline-flex h-10 items-center justify-center rounded-lg bg-white/90 text-black px-4 font-medium hover:bg-white"
+                  disabled={isGenerating}
+                  aria-busy={isGenerating}
+                  className={clsx(
+                    "inline-flex h-10 items-center justify-center rounded-lg bg-white/90 text-black px-4 font-medium hover:bg-white",
+                    "disabled:opacity-60 disabled:cursor-not-allowed"
+                  )}
                 >
-                  Generate
+                  {isGenerating ? (
+                    <>
+                      <svg
+                        className="mr-2 h-4 w-4 animate-spin"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        aria-hidden="true"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+                        />
+                      </svg>
+                      <span>Generating…</span>
+                    </>
+                  ) : (
+                    <span>Generate</span>
+                  )}
                 </button>
               </div>
             </div>
