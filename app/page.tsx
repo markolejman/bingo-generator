@@ -201,7 +201,7 @@ export default function HomePage() {
         >
           <div className="p-6 md:p-8">
             <h1 className="text-2xl md:text-3xl font-semibold tracking-tight">
-              Markos bingo generator
+              Markos bingo-card generator
             </h1>
             <p className="text-white/80 mt-1">
               Choose grid size and amount, then generate printable PDF.
@@ -280,6 +280,14 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+      {/* Bottom-right action button linking to the bingo number generator */}
+      <a
+        href="https://slump-generator.vercel.app/"
+        aria-label="Open Bingo number generator"
+        className="fixed bottom-6 right-6 z-50 inline-flex items-center justify-center rounded-xl border border-white/15 bg-black/70 px-4 py-2 text-white shadow-lg backdrop-blur-md transition hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white/40"
+      >
+        <span>Bingo number generator</span>
+      </a>
     </div>
   );
 }
